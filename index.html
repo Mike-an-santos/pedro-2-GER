@@ -917,25 +917,25 @@ function renderGrid(){
       const pb=document.createElement('div');pb.className='prog-bar';pb.id='pb-'+key;pb.style.background=c.b;btn.appendChild(pb);
       (function(pi2,i2,s2,key2){
         var t=false;
+        var _touched=false;
         btn.addEventListener('touchstart',function(e){
           if(e.target.closest('.btn-menu'))return;
           if(!s2||!s2.audioBlob)return;
           if(actx&&actx.state==='suspended') actx.resume();
-          // Don't preventDefault here — allows long press drag to work
-          // Use touchend for play action instead
         },{passive:true});
         btn.addEventListener('touchend',function(e){
           if(e.target.closest('.btn-menu'))return;
           if(!s2||!s2.audioBlob)return;
-          if(t){t=false;return;}
-          // Only play if not dragging
           if(btn.classList.contains('dragging'))return;
           e.preventDefault();
+          _touched=true;
+          setTimeout(()=>{_touched=false;},500);
           if(players[key2])forceStopSlot(key2); else playSound(pi2,i2,s2);
         },{passive:false});
         btn.onclick=function(e){
           if(e.target.closest('.btn-menu'))return;
-          if(t){t=false;return;}
+          if(_touched){_touched=false;return;}
+          if(!s2||!s2.audioBlob)return;
           if(actx&&actx.state==='suspended') actx.resume();
           if(navigator.vibrate) navigator.vibrate(10);
           if(players[key2]){
