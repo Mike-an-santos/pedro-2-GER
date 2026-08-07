@@ -26,13 +26,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 /* TOP BAR */
 
-
-
-
 #logo-img{height:48px;width:auto;display:block;}
 #app-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;color:var(--accent);font-weight:500;}
-
-
 
 .tbtn{display:flex;align-items:center;gap:5px;padding:5px 9px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer;white-space:nowrap;transition:background .15s;user-select:none;}
 .tbtn:hover,.tbtn:active{background:var(--bg4);}
@@ -171,7 +166,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mx-btn.lim:hover{background:rgba(255,85,85,.12);}
 .mx-btn.lim.on{background:#ff5555;border-color:#ff5555;color:#fff;}
 
-
 #ticker-box{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;overflow:hidden;width:140px;flex-shrink:0;}
 #ticker-track{flex:1;overflow:hidden;min-width:0;}
 #ticker-txt{font-family:monospace;font-size:15px;font-weight:500;color:var(--accent);display:inline-block;white-space:nowrap;}
@@ -184,77 +178,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mx-btn.norm.on{background:#4fffaa;border-color:#4fffaa;color:#0a0f1a;font-weight:600;}
 #dlg-ov.open{display:flex!important;}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #timecode{display:none;}
-
-
-
 
 #topbar{display:grid;grid-template-columns:1fr 160px auto 160px 1fr;align-items:center;gap:10px;padding:max(14px,env(safe-area-inset-top,0px) + 8px) 14px 8px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
 #tb-left{display:flex;align-items:center;gap:6px;justify-content:flex-start;}
 #tb-right{display:flex;align-items:center;gap:6px;justify-content:flex-end;}
 #tb-center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
-
-
-
-
-
-
-
-
 
 #dual-tc-box{display:flex;align-items:center;justify-content:center;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:5px 12px;width:160px;height:38px;box-sizing:border-box;flex-shrink:0;gap:6px;}
 
@@ -445,6 +374,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 'use strict';
 // ═══════════════════════════════════════
 // STATE
+// 
+
+'use strict';
+// ═══════════════════════════════════════
+// STATE
 // ═══════════════════════════════════════
 const COLORS=[
   {n:'cobre',bg:'rgba(192,122,80,.18)',b:'#c07a50'},
@@ -493,17 +427,6 @@ document.addEventListener('mousedown',unlockCtx,{passive:true});
 
 // Audio buffer cache — decode once, reuse
 const abCache={};
-const urlCache={};  // pre-created ObjectURLs for instant play
-
-function preCache(key, blob){
-  if(urlCache[key]) return;
-  // Create ObjectURL once — browser decodes and caches internally
-  urlCache[key]=URL.createObjectURL(blob);
-}
-function clearCache(key){
-  if(urlCache[key]){URL.revokeObjectURL(urlCache[key]);delete urlCache[key];}
-  delete abCache[key];
-}
 function decodeBlob(blob,cb){
   // Use blob.arrayBuffer() — works on file:// and https://
   blob.arrayBuffer().then(ab=>{
@@ -576,12 +499,13 @@ function startTC(){
   const elUp=document.getElementById('tc-elapsed');
   const elDn=document.getElementById('timecode2');
   tcInt=setInterval(()=>{
+    const ctx=getACtx();
     let minRem=Infinity,maxEl=0;
     for(const k in players){
-      const p=players[k];if(!p.audio)continue;
-      const ki=p._ki||0,ko=p._ko;
-      const el=Math.max(0,p.audio.currentTime-ki);
-      const rem=Math.max(0,(ko||p.audio.duration||0)-p.audio.currentTime);
+      const p=players[k];
+      if(!p._start) continue;
+      const el=ctx.currentTime-p._start;
+      const rem=Math.max(0,p._dur-el);
       if(rem<minRem){minRem=rem;maxEl=el;}
     }
     if(minRem===Infinity){
@@ -594,7 +518,7 @@ function startTC(){
     const rm=Math.floor(minRem/60),rs=Math.floor(minRem%60);
     if(elUp)elUp.textContent='▲ '+String(em).padStart(2,'0')+':'+String(es).padStart(2,'0');
     if(elDn)elDn.textContent='▼ '+String(rm).padStart(2,'0')+':'+String(rs).padStart(2,'0');
-  },250);
+  },200);
 }
 function stopTC(){
   clearInterval(tcInt);
@@ -614,80 +538,69 @@ function playSound(pi,idx,snd){
   if(_ft[key]){clearTimeout(_ft[key]);delete _ft[key];}
   if(players[key]) forceStopSlot(key,true);
   if(!snd.audioBlob) return;
-  // Safety: limit simultaneous players to avoid iOS audio limits
-  const activeKeys=Object.keys(players);
-  if(activeKeys.length>=6){
-    // Stop oldest player to make room
-    forceStopSlot(activeKeys[0],true);
-  }
-  // Use cached URL for instant play (pre-decoded by browser)
-  if(!urlCache[key]) urlCache[key]=URL.createObjectURL(snd.audioBlob);
-  const url=urlCache[key];
-  const audio=new Audio(url);
-  audio._url=null; // don't revoke cached URL
-  audio._sname=snd.name||null;
-  const ki=snd.keyIn||0;
-  const ko=snd.keyOut!=null?snd.keyOut:null;
-  if(ki>0) audio.currentTime=ki;
-  const vol=getVol(pi,idx);
-  audio.volume=S.fadeOn?0:vol;
-  players[key]={audio,_ki:ki,_ko:ko,_sname:snd.name||null,_vol:vol};
-  audio.play().catch(()=>setTimeout(()=>audio.play().catch(()=>{}),100));
-  // Fade in
-  if(S.fadeOn){
-    let v=0;const step=vol/((FADE*1000)/50);
-    const fi=setInterval(()=>{
-      if(!players[key]||players[key].audio!==audio){clearInterval(fi);return;}
-      v=Math.min(vol,v+step);audio.volume=v;
-      if(v>=vol)clearInterval(fi);
-    },50);
-  }
-  // Progress + keyOut
-  const tuInt=setInterval(()=>{
-    if(!players[key]||players[key].audio!==audio){clearInterval(tuInt);return;}
-    const dur=(ko||audio.duration||1)-ki;
-    const el=Math.max(0,audio.currentTime-ki);
-    const bar=document.getElementById('pb-'+key);
-    if(bar) bar.style.width=(Math.min(1,el/dur)*100)+'%';
-    if(S.fadeOn&&!players[key]._fading&&el>=dur-FADE){
-      players[key]._fading=true;
-      let v=audio.volume;const step=v/((FADE*1000)/50);
-      const fo=setInterval(()=>{
-        if(!players[key]||players[key].audio!==audio){clearInterval(fo);return;}
-        v=Math.max(0,v-step);audio.volume=v;
-        if(v<=0){
-          clearInterval(fo);
-          if(bar)bar.style.width='100%';
-          forceStopSlot(key,true);updateNP();renderGrid();
-          if(S.loopOn)playSound(pi,idx,snd);
-        }
-      },50);
-      return;
+  const ctx=getACtx();
+  // Decode audio buffer (cached after first decode)
+  function doPlay(buf){
+    const ki=snd.keyIn||0;
+    const ko=snd.keyOut!=null?snd.keyOut:buf.duration;
+    const dur=ko-ki;
+    const an=ctx.createAnalyser();
+    an.fftSize=2048; an.smoothingTimeConstant=0.7;
+    const gain=ctx.createGain();
+    const vol=getVol(pi,idx);
+    gain.gain.value=S.fadeOn?0:vol;
+    an.connect(gain); gain.connect(ctx.destination);
+    const src=ctx.createBufferSource();
+    src.buffer=buf;
+    src.connect(an);
+    const startTime=ctx.currentTime;
+    // Start without duration limit — we stop manually for accurate fade out
+    src.start(0,ki);
+    players[key]={src,an,gain,ln:null,_ki:ki,_ko:ko,_buf:buf,_start:startTime,_dur:dur,_sname:snd.name||null};
+    if(S.fadeOn){
+      gain.gain.setValueAtTime(0,ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(vol,ctx.currentTime+FADE);
     }
-    if(ko&&audio.currentTime>=ko&&!players[key]._fading){
-      clearInterval(tuInt);
-      if(S.loopOn){forceStopSlot(key,true);playSound(pi,idx,snd);}
-      else forceStopSlot(key);
+    src.onended=()=>{
+      if(players[key]&&players[key].src===src) onEnd(key,pi,idx,snd);
+    };
+    // Progress + keyOut enforcement interval
+    const tuInt=setInterval(()=>{
+      if(!players[key]||players[key].src!==src){clearInterval(tuInt);return;}
+      onTU(key,pi,idx,snd);
+    },100);
+    startWF(an); startTC(); updateNP(); renderGrid();
+    // Media Session API — tells iOS to keep audio in background
+    if('mediaSession' in navigator){
+      navigator.mediaSession.metadata=new MediaMetadata({
+        title:snd.name||'SUD CUE',
+        artist:'Pedro Mendinhos CUE',
+        album:'SUD CUE Live'
+      });
+      navigator.mediaSession.playbackState='playing';
+      navigator.mediaSession.setActionHandler('play',()=>{});
+      navigator.mediaSession.setActionHandler('pause',()=>{forceStopAll();});
     }
-  },150);
-  audio.onended=()=>{
-    clearInterval(tuInt);
-    if(!players[key]||players[key]._fading)return;
-    if(S.loopOn){forceStopSlot(key,true);playSound(pi,idx,snd);}
-    else forceStopSlot(key);
-  };
-  // Media Session — background audio
-  if('mediaSession' in navigator){
-    navigator.mediaSession.metadata=new MediaMetadata({
-      title:snd.name||'Pedro Mendinhos CUE',
-      artist:'Pedro Mendinhos CUE',album:'SUD CUE'
-    });
-    navigator.mediaSession.playbackState='playing';
-    navigator.mediaSession.setActionHandler('pause',()=>forceStopAll());
-    navigator.mediaSession.setActionHandler('stop',()=>forceStopAll());
   }
-  startTC();updateNP();renderGrid();
+  // Instant play from cache, or decode via blob.arrayBuffer()
+  console.log('[PLAY] key='+key+' cached='+!!abCache[key]+' all='+JSON.stringify(Object.keys(abCache)));
+  if(abCache[key]){
+    doPlay(abCache[key]);
+  } else {
+    snd.audioBlob.arrayBuffer().then(ab=>{
+      ctx.decodeAudioData(ab,buf=>{
+        abCache[key]=buf;
+        doPlay(buf);
+      },()=>{
+        // Decode failed — show error on button
+        const errBtn=document.querySelector('[data-key="'+key+'"]');
+        if(errBtn) errBtn.style.borderColor='var(--danger)';
+        console.warn('Audio decode failed for',key);
+      });
+    }).catch(()=>{});
+  }
 }
+
 function onTU(key,pi,idx,snd){
   if(!players[key]) return;
   const p=players[key];
@@ -745,7 +658,6 @@ function onEnd(key,pi,idx,snd){
   }
 }
 
-
 function startXfade(key,pi,idx,snd,oldGain,an){
   if(!players[key]||players[key].ln) return;
   const buf=abCache[key];
@@ -801,34 +713,42 @@ function startXfade(key,pi,idx,snd,oldGain,an){
 }
 
 function forceStopSlot(key,silent){
-  if(!players[key])return;
+  if(!players[key]) return;
   const p=players[key];
+  // Cancel any pending timers
+  if(p._xt){clearTimeout(p._xt);}
   if(_ft[key]){clearTimeout(_ft[key]);delete _ft[key];}
-  if(S.fadeOn&&p.audio&&!silent&&!p._fading){
+  if(S.fadeOn&&p.gain&&!silent&&!p._fading){
+    // Fade out then stop
     p._fading=true;
-    let v=p.audio.volume;const step=v/((FADE*1000)/50);
-    const fo=setInterval(()=>{
-      if(!players[key]||players[key].audio!==p.audio){clearInterval(fo);return;}
-      v=Math.max(0,v-step);p.audio.volume=v;
-      if(v<=0){
-        clearInterval(fo);
-        try{p.audio.pause();}catch(e){}
-        delete players[key];
-        if(!Object.keys(players).length)stopTC();
-        updateNP();renderGrid();
-      }
-    },50);
+    const ctx=getACtx(),now=ctx.currentTime;
+    p.gain.gain.setValueAtTime(p.gain.gain.value,now);
+    p.gain.gain.linearRampToValueAtTime(0,now+FADE);
+    if(p.ln&&p.ln.gain){
+      p.ln.gain.gain.setValueAtTime(p.ln.gain.gain.value,now);
+      p.ln.gain.gain.linearRampToValueAtTime(0,now+FADE);
+    }
+    _ft[key]=setTimeout(()=>{
+      delete _ft[key];
+      if(!players[key]||!players[key]._fading) return;
+      try{p.src.stop();}catch(e){}
+      if(p.ln){try{p.ln.src.stop();}catch(e){}}
+      delete players[key];
+      if(!Object.keys(players).length){stopWF();stopTC();}
+      updateNP();renderGrid();
+    },FADE*1000);
     return;
   }
-  try{p.audio.pause();}catch(e){}
-  // Don't revoke URL — it's cached in urlCache for instant replay
+  // Immediate stop
+  try{p.src.stop();}catch(e){}
+  if(p.ln){try{p.ln.src.stop();}catch(e){}}
   delete players[key];
-  if(!Object.keys(players).length)stopTC();
+  if(!Object.keys(players).length){stopWF();stopTC();}
   if(!silent){updateNP();renderGrid();}
 }
 function forceStopAll(){
   for(const k in players) forceStopSlot(k,true);
-  players={};stopTC();updateNP();renderGrid();
+  players={};stopWF();stopTC();updateNP();renderGrid();
 }
 
 function updateNP(){
@@ -1092,7 +1012,7 @@ document.getElementById('ci-rename').onclick=()=>{
 };
 document.getElementById('ci-del').onclick=()=>{
   hideCtx();forceStopSlot(ctxPi+'-'+ctxSlot,true);
-  const ck2=ctxPi+'-'+ctxSlot;clearCache(ck2);S.pages[ctxPi].sounds[ctxSlot]=null;renderGrid();updateNP();
+  const ck2=ctxPi+'-'+ctxSlot;delete abCache[ck2];S.pages[ctxPi].sounds[ctxSlot]=null;renderGrid();updateNP();
 };
 
 // ═══════════════════════════════════════
@@ -1291,11 +1211,6 @@ document.getElementById('sess-input').onchange=(e)=>{
 function loadSessionData(d){
   try{
     forceStopAll();
-    // Clear URL cache to free memory from previous session
-    Object.keys(urlCache).forEach(k=>{
-      try{URL.revokeObjectURL(urlCache[k]);}catch(e){}
-      delete urlCache[k];
-    });
     S.pages=d.pages.map(p=>({
       id:p.id,name:p.name,
       sounds:p.sounds.map(s=>{
@@ -1314,14 +1229,19 @@ function loadSessionData(d){
     S.npi=d.npi||2;S.groups=d.groups||[];S.ngi=d.ngi||1;S.chvol=d.chvol||{};S.ap=0;
     renderPages();renderGrid();
     // Pre-decode all audio buffers
-    // Pre-cache all URLs for instant play
     setTimeout(()=>{
+      const snds=[];
       S.pages.forEach((pg,pi)=>pg.sounds.forEach((snd,si)=>{
-        if(!snd||!snd.audioBlob) return;
-        const k=pi+'-'+si;
-        if(!urlCache[k]) urlCache[k]=URL.createObjectURL(snd.audioBlob);
+        if(snd&&snd.audioBlob&&!abCache[pi+'-'+si]) snds.push({snd,k:pi+'-'+si});
       }));
-    },100);
+      let i=0;
+      function decodeNext(){
+        if(i>=snds.length)return;
+        const {snd,k}=snds[i++];
+        decodeBlob(snd.audioBlob,buf=>{if(buf)abCache[k]=buf;decodeNext();});
+      }
+      decodeNext();
+    },200);
   }catch(err){
     dlg('warn','Erro','Erro ao carregar: '+err.message,'OK',null,()=>{});
   }
@@ -1697,24 +1617,23 @@ document.getElementById('rename-inp').addEventListener('keydown',(e)=>{if(e.key=
 // ═══════════════════════════════════════
 // ADD PAGE
 // ═══════════════════════════════════════
-document.getElementById('pg-add-btn').onclick=()=>{
-  dlg('prompt','Nova Página','','Criar','Cancelar',(nm)=>{
-    // nm can be empty string from dlg — allow it
-    const name=(nm!=null&&nm.trim())?nm.trim():'Página '+(S.pages.length+1);
-    S.pages.push({id:S.npi++,name,sounds:Array(SLOTS).fill(null)});
-    S.ap=S.pages.length-1;
-    renderPages();renderGrid();
-  });
-};
-document.getElementById('pg-add-btn').addEventListener('touchend',(e)=>{
-  e.preventDefault();
-  dlg('prompt','Nova Página','','Criar','Cancelar',(nm)=>{
-    const name=(nm!=null&&nm.trim())?nm.trim():'Página '+(S.pages.length+1);
-    S.pages.push({id:S.npi++,name,sounds:Array(SLOTS).fill(null)});
-    S.ap=S.pages.length-1;
-    renderPages();renderGrid();
-  });
-},{passive:false});
+(function(){
+  let _busy=false;
+  function doAdd(){
+    if(_busy)return;_busy=true;
+    dlg('prompt','Nova Página','','Criar','Cancelar',(nm)=>{
+      _busy=false;
+      if(nm==null)return;
+      const name=nm.trim()||'Página '+(S.pages.length+1);
+      S.pages.push({id:S.npi++,name,sounds:Array(SLOTS).fill(null)});
+      S.ap=S.pages.length-1;
+      renderPages();renderGrid();
+    });
+    setTimeout(()=>{_busy=false;},500);
+  }
+  document.getElementById('pg-add-btn').addEventListener('touchend',(e)=>{e.preventDefault();doAdd();},{passive:false});
+  document.getElementById('pg-add-btn').onclick=(e)=>{if(e.pointerType==='touch')return;doAdd();};
+})();
 
 // ═══════════════════════════════════════
 // TOPBAR CONTROLS
@@ -1836,7 +1755,6 @@ setTimeout(()=>{
   }
 },1500);
 
-
 // ═══════════════════════════════════════
 // INDEXEDDB — Session Storage
 // ═══════════════════════════════════════
@@ -1861,9 +1779,7 @@ async function dbSave(name,data){
   const d=await openDB();
   return new Promise((res,rej)=>{
     const tx=d.transaction('sessions','readwrite');
-    // Add integrity marker
-    const record={name,...data,_saved:Date.now(),_ok:true};
-    tx.objectStore('sessions').put(record);
+    tx.objectStore('sessions').put({name,...data});
     tx.oncomplete=()=>res();
     tx.onerror=e=>rej(e.target.error);
   });
@@ -1930,11 +1846,7 @@ document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'){
     // Resume AudioContext when app comes back to foreground
     if(actx&&actx.state==='suspended'){
-      actx.resume().then(()=>{
-        // Restart any players that were playing
-        // (iOS may have stopped them — user needs to re-trigger)
-        console.log('AudioContext resumed');
-      });
+      actx.resume().catch(()=>{});
     }
     if(!wakeLock) requestWakeLock();
   }
@@ -1959,7 +1871,6 @@ requestWakeLock();
   document.addEventListener('touchstart',initACtx,{capture:true,passive:true});
   document.addEventListener('keydown',initACtx,{capture:true,passive:true});
 })();
-</script>
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw-lite.js').catch(()=>{});});}</script>
+ner('load',()=>{navigator.serviceWorker.register('./sw-lite.js').catch(()=>{});});}</script>
 </body>
 </html>
