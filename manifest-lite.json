@@ -1,7 +1,7 @@
 {
-  "name": "Pedro Mendinhos CUE",
-  "short_name": "Pedro CUE",
-  "description": "Professional Soundboard - Pedro Mendinhos",
+  "name": "SUD CUE Lite",
+  "short_name": "SUD CUE Lite",
+  "description": "Professional Soundboard - Lite Edition for iPad",
   "start_url": "./",
   "display": "standalone",
   "orientation": "landscape",
