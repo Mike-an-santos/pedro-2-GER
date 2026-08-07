@@ -26,13 +26,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 /* TOP BAR */
 
-
-
-
 #logo-img{height:48px;width:auto;display:block;}
 #app-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;color:var(--accent);font-weight:500;}
-
-
 
 .tbtn{display:flex;align-items:center;gap:5px;padding:5px 9px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer;white-space:nowrap;transition:background .15s;user-select:none;}
 .tbtn:hover,.tbtn:active{background:var(--bg4);}
@@ -171,7 +166,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mx-btn.lim:hover{background:rgba(255,85,85,.12);}
 .mx-btn.lim.on{background:#ff5555;border-color:#ff5555;color:#fff;}
 
-
 #ticker-box{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;overflow:hidden;width:140px;flex-shrink:0;}
 #ticker-track{flex:1;overflow:hidden;min-width:0;}
 #ticker-txt{font-family:monospace;font-size:15px;font-weight:500;color:var(--accent);display:inline-block;white-space:nowrap;}
@@ -184,77 +178,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mx-btn.norm.on{background:#4fffaa;border-color:#4fffaa;color:#0a0f1a;font-weight:600;}
 #dlg-ov.open{display:flex!important;}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #timecode{display:none;}
-
-
-
 
 #topbar{display:grid;grid-template-columns:1fr 160px auto 160px 1fr;align-items:center;gap:10px;padding:max(14px,env(safe-area-inset-top,0px) + 8px) 14px 8px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
 #tb-left{display:flex;align-items:center;gap:6px;justify-content:flex-start;}
 #tb-right{display:flex;align-items:center;gap:6px;justify-content:flex-end;}
 #tb-center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
-
-
-
-
-
-
-
-
 
 #dual-tc-box{display:flex;align-items:center;justify-content:center;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:5px 12px;width:160px;height:38px;box-sizing:border-box;flex-shrink:0;gap:6px;}
 
@@ -441,6 +370,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 <div id="dlg-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(8px);"><div style="background:linear-gradient(145deg,#141e35,#111829);border-radius:18px;border:1px solid rgba(255,255,255,.1);padding:1.75rem;width:320px;max-width:92vw;box-shadow:0 32px 80px rgba(0,0,0,.8);"><div id="dlg-icon"></div><div id="dlg-ttl" style="font-size:15px;font-weight:600;color:#edeae3;text-align:center;margin-bottom:8px;"></div><div id="dlg-msg" style="font-size:13px;color:#7d7566;text-align:center;margin-bottom:1.3rem;line-height:1.55;min-height:16px;"></div><div id="dlg-inp-wrap" style="margin-bottom:1rem;display:none;"><input type="text" id="dlg-inp" autocomplete="off" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);color:#edeae3;font-size:14px;outline:none;box-sizing:border-box;"></div><div style="display:flex;gap:8px;"><button id="dlg-no" style="flex:1;padding:10px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:#7d7566;">Cancelar</button><button id="dlg-yes" style="flex:1;padding:10px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;border:none;color:#fff;background:var(--accent);">OK</button></div></div></div>
 <script>
+
+'use strict';
+// ═══════════════════════════════════════
+// STATE
+// 
 
 'use strict';
 // ═══════════════════════════════════════
@@ -723,7 +657,6 @@ function onEnd(key,pi,idx,snd){
     forceStopSlot(key);
   }
 }
-
 
 function startXfade(key,pi,idx,snd,oldGain,an){
   if(!players[key]||players[key].ln) return;
@@ -1822,7 +1755,6 @@ setTimeout(()=>{
   }
 },1500);
 
-
 // ═══════════════════════════════════════
 // INDEXEDDB — Session Storage
 // ═══════════════════════════════════════
@@ -1939,7 +1871,6 @@ requestWakeLock();
   document.addEventListener('touchstart',initACtx,{capture:true,passive:true});
   document.addEventListener('keydown',initACtx,{capture:true,passive:true});
 })();
-</script>
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw-lite.js').catch(()=>{});});}</script>
+ner('load',()=>{navigator.serviceWorker.register('./sw-lite.js').catch(()=>{});});}</script>
 </body>
 </html>
